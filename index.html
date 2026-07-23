@@ -254,6 +254,20 @@ window.drawPlayer=function(t){
   #jump{order:1;background:#baff4acc;color:#10121a;border-color:#d8ff96}
   #duck{order:2;background:#17182ddd;color:#fff}
 }
+@media(orientation:landscape) and (max-height:600px){
+  html,body{height:100dvh;min-height:0}
+  body{display:block}
+  .game{width:100vw;height:100dvh;max-width:none;max-height:none;border:0}
+  .top{inset:10px 14px auto}.logo{font-size:15px}.score strong{font-size:21px}.score span{font-size:9px}.hint{display:none}
+  .overlay{padding:8px}
+  .card{padding:11px 20px;max-width:min(420px,62vw);clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+  .kicker{font-size:8px}.card h1{font-size:clamp(29px,8vh,43px);margin:5px 0 7px}.card p{display:none}
+  .start{margin-top:4px;padding:9px 19px;font-size:12px}
+  .controls{right:max(9px,env(safe-area-inset-right));bottom:max(9px,env(safe-area-inset-bottom));width:72px;gap:6px}
+  .ctrl{width:72px;height:46px;border-radius:10px;font-size:12px}
+  .overlay.defeat-mode{padding:0 10px max(8px,env(safe-area-inset-bottom))}
+  .overlay.defeat-mode .card{padding:8px 16px}.overlay.defeat-mode .card h1{font-size:28px}
+}
 .overlay.defeat-mode{background:rgba(3,4,10,.18);backdrop-filter:none;align-items:end;padding:0 18px 22px}
 .defeat-cg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 32%;z-index:0;filter:saturate(.92) brightness(.76)}
 .overlay.defeat-mode .card{position:relative;z-index:1;padding:18px 28px;background:rgba(8,9,20,.82);backdrop-filter:blur(8px);max-width:430px}
@@ -281,4 +295,11 @@ window.over=function(){
   defeatCg.src=`assets/defeat-${pick}.webp`;defeatCg.hidden=false;defeatOverlay.classList.add('defeat-mode');
 };
 document.querySelector('#start').addEventListener('click',()=>{defeatOverlay.classList.remove('defeat-mode');defeatCg.hidden=true});
+document.querySelector('#start').addEventListener('click',async()=>{
+  if(!matchMedia('(pointer:coarse)').matches)return;
+  try{if(!document.fullscreenElement)await game.requestFullscreen?.({navigationUI:'hide'})}catch{}
+  try{await screen.orientation?.lock?.('landscape')}catch{}
+  setTimeout(resize,180);
+});
+if(window.visualViewport)visualViewport.addEventListener('resize',()=>{clearTimeout(window.__jwksResize);window.__jwksResize=setTimeout(resize,80)});
 </script></body></html>
