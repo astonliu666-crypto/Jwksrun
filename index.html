@@ -273,6 +273,7 @@ window.drawPlayer=function(t){
 .overlay.defeat-mode .card{position:relative;z-index:1;padding:18px 28px;background:rgba(8,9,20,.82);backdrop-filter:blur(8px);max-width:430px}
 .overlay.defeat-mode .card h1{font-size:clamp(32px,6vw,55px);margin:8px 0 9px}
 .overlay.defeat-mode .card p{margin:5px 0;line-height:1.4}
+.overlay.defeat-mode + .controls{display:none!important}
 </style>
 <script>
 document.title='JWKS RUN';
@@ -288,12 +289,16 @@ const defeatOverlay=document.querySelector('#overlay'),defeatCard=defeatOverlay.
 const defeatCg=document.createElement('img');defeatCg.className='defeat-cg';defeatCg.alt='战败 CG';defeatCg.hidden=true;
 defeatOverlay.insertBefore(defeatCg,defeatCard);
 let lastDefeatCg=-1;
-const originalOver=window.over;
-window.over=function(){
-  originalOver();
+function showDefeatCg(){
+  if(defeatOverlay.classList.contains('defeat-mode'))return;
   let pick=Math.floor(Math.random()*9);if(pick===lastDefeatCg)pick=(pick+1)%9;lastDefeatCg=pick;
-  defeatCg.src=`assets/defeat-${pick}.webp`;defeatCg.hidden=false;defeatOverlay.classList.add('defeat-mode');
-};
+  defeatCg.src=`assets/defeat-${pick}.jpg`;defeatCg.hidden=false;defeatOverlay.classList.add('defeat-mode');
+}
+// QQ WebView may keep the original global game-over binding. Watching the
+// actual overlay state works consistently in both QQ and normal browsers.
+new MutationObserver(()=>{
+  if(!defeatOverlay.classList.contains('hidden')&&document.querySelector('#kicker').textContent.includes('SIGNAL LOST'))showDefeatCg();
+}).observe(defeatOverlay,{attributes:true,attributeFilter:['class']});
 document.querySelector('#start').addEventListener('click',()=>{defeatOverlay.classList.remove('defeat-mode');defeatCg.hidden=true});
 document.querySelector('#start').addEventListener('click',async()=>{
   if(!matchMedia('(pointer:coarse)').matches)return;
@@ -302,4 +307,9 @@ document.querySelector('#start').addEventListener('click',async()=>{
   setTimeout(resize,180);
 });
 if(window.visualViewport)visualViewport.addEventListener('resize',()=>{clearTimeout(window.__jwksResize);window.__jwksResize=setTimeout(resize,80)});
+const essentialImages=[...run6,qfinal[2],qfinal[3],missileImg,concreteWallImg,sonicTrapImg,smokeMineImg,flashbangImg];
+const startButton=document.querySelector('#start');startButton.disabled=true;startButton.textContent='资源加载中 0%';
+let loadedEssential=0,failedEssential=0;
+function markEssential(ok=true){loadedEssential++;if(!ok)failedEssential++;startButton.textContent=`资源加载中 ${Math.round(loadedEssential/essentialImages.length*100)}%`;if(loadedEssential>=essentialImages.length){if(failedEssential){startButton.disabled=true;startButton.textContent='素材加载失败，请刷新'}else{startButton.disabled=false;startButton.textContent='开始奔跑  →'}}}
+essentialImages.forEach(im=>{if(im.complete&&im.naturalWidth)markEssential();else{im.addEventListener('load',()=>markEssential(true),{once:true});im.addEventListener('error',()=>markEssential(false),{once:true})}});
 </script></body></html>
