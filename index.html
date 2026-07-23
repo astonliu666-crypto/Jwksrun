@@ -151,6 +151,14 @@ window.spawnObstacle=function(){
         else obstacles.push({x:followX,y:ground-34,w:66,h:34,type:'sonic',activated:false,pulseStart:0});
       }
     }
+    // Final fairness pass: two lethal hazards must never overlap or demand
+    // conflicting actions before the previous jump/duck has fully recovered.
+    const lethalTypes=new Set(['concrete','sonic','drone']),newSet=new Set(obstacles.slice(before));
+    const lethalNew=obstacles.filter(o=>lethalTypes.has(o.type)&&o.x>player.x).sort((a,b)=>a.x-b.x);
+    const recoveryGap=Math.max(540,speed*58);
+    for(let i=1;i<lethalNew.length;i++){
+      if(newSet.has(lethalNew[i])&&lethalNew[i].x-lethalNew[i-1].x<recoveryGap)lethalNew[i].x=lethalNew[i-1].x+recoveryGap;
+    }
     lastLethalFormation=['concrete','sonic'].includes(previousType)||fresh.some(o=>['concrete','sonic'].includes(o.type));
   }
   // The next formation interval deliberately varies, but tightens gradually.
@@ -166,8 +174,6 @@ window.drawObstacle=function(o){
   if(o.type==='smoke'&&o.triggered)return;
   ctx.save();
   if(o.type==='flashbang'){
-    // Counteract part of the global scroll so the flashbang flies more slowly.
-    if(playing)o.x+=speed*.15;
     ctx.shadowBlur=18;ctx.shadowColor='#8eefff';
     ctx.drawImage(flashbangImg,253,211,762,755,o.x,o.y,o.w,o.h);ctx.restore();return;
   }
@@ -241,8 +247,38 @@ window.drawPlayer=function(t){
   }
 };
 </script>
+<style>
+@media(max-width:799px), (pointer:coarse){
+  .controls{left:auto;right:18px;bottom:18px;width:92px;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:10px;pointer-events:none;z-index:8}
+  .ctrl{width:92px;height:66px;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;font-size:16px;font-weight:900;border-radius:14px}
+  #jump{order:1;background:#baff4acc;color:#10121a;border-color:#d8ff96}
+  #duck{order:2;background:#17182ddd;color:#fff}
+}
+.overlay.defeat-mode{background:rgba(3,4,10,.18);backdrop-filter:none;align-items:end;padding:0 18px 22px}
+.defeat-cg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 32%;z-index:0;filter:saturate(.92) brightness(.76)}
+.overlay.defeat-mode .card{position:relative;z-index:1;padding:18px 28px;background:rgba(8,9,20,.82);backdrop-filter:blur(8px);max-width:430px}
+.overlay.defeat-mode .card h1{font-size:clamp(32px,6vw,55px);margin:8px 0 9px}
+.overlay.defeat-mode .card p{margin:5px 0;line-height:1.4}
+</style>
 <script>
 document.title='JWKS RUN';
 document.querySelector('.logo').innerHTML='JWKS <b>RUN</b>';
 document.querySelector('#title').innerHTML='JWKS <em>RUN</em>';
+jumpControl.textContent='↑ 跳跃';duckControl.textContent='↓ 蹲下';
+// Extra touch fallback for mobile WebViews that do not dispatch pointer events reliably.
+jumpControl.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();jump()},{passive:false});
+duckControl.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();duck(true)},{passive:false});
+duckControl.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();duck(false)},{passive:false});
+duckControl.addEventListener('touchcancel',e=>{e.preventDefault();e.stopPropagation();duck(false)},{passive:false});
+const defeatOverlay=document.querySelector('#overlay'),defeatCard=defeatOverlay.querySelector('.card');
+const defeatCg=document.createElement('img');defeatCg.className='defeat-cg';defeatCg.alt='战败 CG';defeatCg.hidden=true;
+defeatOverlay.insertBefore(defeatCg,defeatCard);
+let lastDefeatCg=-1;
+const originalOver=window.over;
+window.over=function(){
+  originalOver();
+  let pick=Math.floor(Math.random()*9);if(pick===lastDefeatCg)pick=(pick+1)%9;lastDefeatCg=pick;
+  defeatCg.src=`assets/defeat-${pick}.webp`;defeatCg.hidden=false;defeatOverlay.classList.add('defeat-mode');
+};
+document.querySelector('#start').addEventListener('click',()=>{defeatOverlay.classList.remove('defeat-mode');defeatCg.hidden=true});
 </script></body></html>
