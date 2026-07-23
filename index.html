@@ -269,9 +269,9 @@ window.drawPlayer=function(t){
   .overlay.defeat-mode{padding:0 10px max(8px,env(safe-area-inset-bottom))}
   .overlay.defeat-mode .card{padding:8px 16px}.overlay.defeat-mode .card h1{font-size:28px}
 }
-.overlay.defeat-mode{background:rgba(3,4,10,.18);backdrop-filter:none;align-items:end;padding:0 18px 22px}
-.defeat-cg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 32%;z-index:0;filter:saturate(.92) brightness(.76)}
-.overlay.defeat-mode .card{position:relative;z-index:1;padding:18px 28px;background:rgba(8,9,20,.82);backdrop-filter:blur(8px);max-width:430px}
+.overlay.defeat-mode{background:#050611;backdrop-filter:none;align-items:center;justify-items:end;padding:18px}
+.defeat-cg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center;z-index:0;filter:saturate(.95) brightness(.84);background:#050611}
+.overlay.defeat-mode .card{position:relative;z-index:1;padding:16px 22px;background:rgba(8,9,20,.86);backdrop-filter:blur(8px);max-width:min(350px,38vw)}
 .overlay.defeat-mode .card h1{font-size:clamp(32px,6vw,55px);margin:8px 0 9px}
 .overlay.defeat-mode .card p{margin:5px 0;line-height:1.4}
 .overlay.defeat-mode + .controls{display:none!important}
