@@ -12,7 +12,7 @@ const canvas=document.querySelector('#canvas'),ctx=canvas.getContext('2d'),game=
 const player={x:115,y:0,w:126,h:126,vy:0,jumping:false,duck:false};let obstacles=[],particles=[],stars=[];
 function resize(){DPR=Math.min(devicePixelRatio||1,2);W=game.clientWidth;H=game.clientHeight;canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);ground=H*.72;player.y=ground-player.h;stars=Array.from({length:90},()=>({x:Math.random()*W,y:Math.random()*ground*.7,r:Math.random()*1.5,s:.15+Math.random()*.45}));}addEventListener('resize',resize);resize();
 function reset(){score=0;speed=10;level=1;obstacles=[];particles=[];spawn=70;player.y=ground-player.h;player.vy=0;player.jumping=false;player.duck=false;playing=true;document.querySelector('#overlay').classList.add('hidden');beep(360,.08,'square');}
-function jump(){if(!playing){reset();return}if(!player.jumping){player.vy=-18;player.jumping=true;player.duck=false;for(let i=0;i<8;i++)particles.push({x:player.x+55,y:ground-5,vx:-Math.random()*3,vy:-Math.random()*2,life:25,c:'#baff4a'});beep(520,.05,'square')}}function duck(v){if(playing&&!player.jumping)player.duck=v}
+function jump(){if(!playing)return;if(!player.jumping){player.vy=-18;player.jumping=true;player.duck=false;for(let i=0;i<8;i++)particles.push({x:player.x+55,y:ground-5,vx:-Math.random()*3,vy:-Math.random()*2,life:25,c:'#baff4a'});beep(520,.05,'square')}}function duck(v){if(playing&&!player.jumping)player.duck=v}
 addEventListener('keydown',e=>{if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='Space'||e.code==='ArrowUp')jump();if(e.code==='ArrowDown')duck(true)});addEventListener('keyup',e=>{if(e.code==='ArrowDown')duck(false)});document.querySelector('#start').onclick=reset;document.querySelector('#jump').ontouchstart=e=>{e.preventDefault();jump()};document.querySelector('#duck').ontouchstart=e=>{e.preventDefault();duck(true)};document.querySelector('#duck').ontouchend=e=>{e.preventDefault();duck(false)};canvas.addEventListener('pointerdown',jump);
 let audio;function beep(f,d,type){try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();let o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.05,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch{}}
 function spawnObstacle(){let pool=score<180?['barrier','spike','orb']:score<500?['barrier','spike','orb','drone','laser']:['barrier','spike','orb','drone','laser','wall'];let type=pool[Math.floor(Math.random()*pool.length)],o;if(type==='drone')o={x:W+30,y:ground-(108+Math.random()*25),w:70,h:34,type};else if(type==='laser')o={x:W+30,y:ground-126,w:92,h:26,type};else if(type==='spike')o={x:W+30,y:ground-35,w:56+Math.random()*25,h:35,type};else if(type==='orb')o={x:W+30,y:ground-48,w:48,h:48,type,spin:0};else if(type==='wall')o={x:W+30,y:ground-88,w:43,h:88,type};else o={x:W+30,y:ground-(48+Math.random()*25),w:38+Math.random()*24,h:48+Math.random()*25,type};obstacles.push(o);if(score>450&&Math.random()<.22&&['barrier','spike','orb'].includes(type))obstacles.push({...o,x:o.x+o.w+55+Math.random()*28,w:type==='spike'?46:o.w});spawn=Math.max(30,58+Math.random()*55-Math.min(score/70,30))}
@@ -56,4 +56,193 @@ jumpControl.ontouchstart=null;duckControl.ontouchstart=null;duckControl.ontouche
 jumpControl.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();jump()});
 duckControl.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();duck(true);duckControl.setPointerCapture?.(e.pointerId)});
 ['pointerup','pointercancel','pointerleave'].forEach(type=>duckControl.addEventListener(type,e=>{e.preventDefault();e.stopPropagation();duck(false)}));
+</script>
+<script>
+const run6=Array.from({length:6},(_,i)=>{let im=new Image();im.src=`assets/run6-${i}.png`;return im}),run6box=[[54,149,308,385],[0,166,353,378],[62,131,237,415],[9,166,318,382],[21,106,341,374],[0,158,277,389]];
+function drawRun6(i,x,bottom,scale){let b=run6box[i],w=b[2]*scale,h=b[3]*scale;ctx.drawImage(run6[i],b[0],b[1],b[2],b[3],x-w/2,bottom-h,w,h)}
+function drawPlayer(t){const cx=player.x+61;ctx.save();if(player.jumping&&playing){ctx.translate(cx,player.y+player.h);ctx.rotate(Math.max(-.06,Math.min(.06,player.vy*.004)));drawQ(3,0,0,.285)}else if(player.duck&&playing){ctx.translate(cx+2,ground);drawQ(2,0,0,.255)}else{let frameTime=Math.max(70,105-speed*1.5),frame=playing?Math.floor(t/frameTime)%6:0;ctx.translate(cx,ground);drawRun6(frame,0,0,.36);if(playing&&(frame===0||frame===3)&&Math.random()<.16)particles.push({x:player.x+25,y:ground-7,vx:-3-Math.random()*2,vy:-Math.random(),life:12,c:'#ff4fe1'})}ctx.restore()}
+</script>
+<script>
+const missileImg=new Image();missileImg.src='assets/flying-missile.png';const baseObstacleRenderer=window.drawObstacle;
+window.drawObstacle=function(o){if(o.type!=='drone'){baseObstacleRenderer(o);return}ctx.save();ctx.shadowBlur=18;ctx.shadowColor='#ff5a18';ctx.drawImage(missileImg,102,189,1611,525,o.x-16,o.y-1,102,34);ctx.restore()};
+const baseSpawnObstacle=window.spawnObstacle;window.spawnObstacle=function(){let before=obstacles.length;baseSpawnObstacle();for(let i=before;i<obstacles.length;i++)if(obstacles[i].type==='drone')obstacles[i].y-=18};
+</script>
+<script>
+// Delta Force-inspired ground obstacles: concrete cover, sonic trap and smoke mine.
+const concreteWallImg=new Image(),sonicTrapImg=new Image(),smokeMineImg=new Image(),flashbangImg=new Image();
+concreteWallImg.src='assets/concrete-wall.png';
+sonicTrapImg.src='assets/sonic-trap.png';
+smokeMineImg.src='assets/smoke-mine.png';
+flashbangImg.src='assets/flying-flashbang-ball.png';
+let smokeUntil=0,smokeSeed=0,smokeAnchor=null,flashUntil=0,lastLethalFormation=false;
+
+const themedSpawnObstacle=window.spawnObstacle;
+window.spawnObstacle=function(){
+  const before=obstacles.length;
+  themedSpawnObstacle();
+  for(let i=before;i<obstacles.length;i++){
+    const o=obstacles[i];
+    const wasGround=['barrier','spike','orb','wall'].includes(o.type);
+    // Normalize the total air/ground mix to roughly 50/50 from the start.
+    const airBoost=score<180?.50:score<500?.17:.25;
+    if(wasGround&&Math.random()<airBoost){
+      if(Math.random()<.52){o.type='drone';o.w=70;o.h=34;o.y=ground-150}
+      else{o.type='flashbang';o.w=52;o.h=52;o.y=ground-106;o.activated=false}
+      continue;
+    }
+    if(o.type==='laser'){
+      o.type='flashbang';o.w=52;o.h=52;o.y=ground-106;o.activated=false;
+    }else if(['barrier','spike','orb','wall'].includes(o.type)){
+      const roll=Math.random();
+      if(roll<.38){
+        o.type='concrete';o.w=76;o.h=105;o.y=ground-o.h;
+      }else if(roll<.72){
+        o.type='sonic';o.w=66;o.h=34;o.y=ground-o.h;o.activated=false;o.pulseStart=0;
+      }else{
+        o.type='smoke';o.w=52;o.h=30;o.y=ground-o.h;o.triggered=false;
+      }
+    }
+  }
+  const fresh=obstacles.slice(before);
+  // Safe air/ground combinations. A lethal flying missile is paired only with
+  // non-lethal smoke, while the non-lethal flashbang may accompany a jump obstacle.
+  for(const air of fresh.filter(o=>o.type==='drone'||o.type==='flashbang')){
+    if(Math.random()<.46){
+      if(air.type==='drone')obstacles.push({x:air.x+28,y:ground-30,w:52,h:30,type:'smoke',triggered:false});
+      else if(Math.random()<.5)obstacles.push({x:air.x+185,y:ground-105,w:76,h:105,type:'concrete'});
+      else obstacles.push({x:air.x+185,y:ground-34,w:66,h:34,type:'sonic',activated:false,pulseStart:0});
+    }
+  }
+  // Random formations: sometimes several obstacles share the screen, while
+  // speed-based spacing always leaves enough time to finish the previous move.
+  if(fresh.length){
+    // Avoid repeatedly opening formations with concrete/sonic obstacles.
+    if(lastLethalFormation&&['concrete','sonic'].includes(fresh[0].type)&&Math.random()<.78){
+      Object.assign(fresh[0],{type:'smoke',w:52,h:30,y:ground-30,triggered:false});
+    }
+    const lead=fresh[0],safeGap=Math.max(310,speed*36);
+    let cursor=lead.x,previousType=lead.type;
+    for(let i=1;i<fresh.length;i++){
+      cursor+=previousType==='smoke'?Math.max(safeGap,speed*65):safeGap;
+      if(['concrete','sonic'].includes(previousType)&&['concrete','sonic'].includes(fresh[i].type)){
+        Object.assign(fresh[i],{type:'smoke',w:52,h:30,y:ground-30,triggered:false});
+      }
+      fresh[i].x=cursor;previousType=fresh[i].type;
+    }
+    const difficulty=Math.min(1,score/1100),formationRoll=Math.random();
+    const extraCount=formationRoll<.015+.045*difficulty?2:formationRoll<.10+.16*difficulty?1:0;
+    for(let n=0;n<extraCount;n++){
+      cursor+=previousType==='smoke'?Math.max(safeGap,speed*65):safeGap;
+      const x=cursor;
+      const type=['concrete','sonic'].includes(previousType)?'smoke':Math.random()<.56?'smoke':Math.random()<.55?'sonic':'concrete';
+      if(type==='smoke')obstacles.push({x,y:ground-30,w:52,h:30,type,triggered:false});
+      else if(type==='sonic')obstacles.push({x,y:ground-34,w:66,h:34,type,activated:false,pulseStart:0});
+      else obstacles.push({x,y:ground-105,w:76,h:105,type});
+      previousType=type;
+    }
+    // Disruption matters more when a lethal obstacle follows, but the gap is
+    // scaled so the flash/smoke can clear before the obstacle becomes unavoidable.
+    const formationNow=obstacles.slice(before);
+    for(const d of formationNow.filter(o=>o.type==='smoke'||o.type==='flashbang')){
+      const alreadyFollowed=formationNow.some(o=>o.x>d.x&&['concrete','sonic'].includes(o.type));
+      if(!alreadyFollowed){
+        const followX=d.x+Math.max(440,speed*58);
+        if(Math.random()<.5)obstacles.push({x:followX,y:ground-105,w:76,h:105,type:'concrete'});
+        else obstacles.push({x:followX,y:ground-34,w:66,h:34,type:'sonic',activated:false,pulseStart:0});
+      }
+    }
+    lastLethalFormation=['concrete','sonic'].includes(previousType)||fresh.some(o=>['concrete','sonic'].includes(o.type));
+  }
+  // The next formation interval deliberately varies, but tightens gradually.
+  spawn=Math.max(48,105+Math.random()*75-Math.min(score/14,55));
+};
+
+const themedObstacleRenderer=window.drawObstacle;
+window.drawObstacle=function(o){
+  if(!['concrete','sonic','smoke','flashbang'].includes(o.type)){
+    if(o.type==='drone'&&playing)o.x-=speed*.18;
+    themedObstacleRenderer(o);return
+  }
+  if(o.type==='smoke'&&o.triggered)return;
+  ctx.save();
+  if(o.type==='flashbang'){
+    // Counteract part of the global scroll so the flashbang flies more slowly.
+    if(playing)o.x+=speed*.15;
+    ctx.shadowBlur=18;ctx.shadowColor='#8eefff';
+    ctx.drawImage(flashbangImg,253,211,762,755,o.x,o.y,o.w,o.h);ctx.restore();return;
+  }
+  const img=o.type==='concrete'?concreteWallImg:o.type==='sonic'?sonicTrapImg:smokeMineImg;
+  const source=o.type==='concrete'?[126,265,1425,475]:o.type==='sonic'?[310,102,915,778]:[81,262,1059,648];
+  const pad=o.type==='concrete'?12:o.type==='sonic'?10:8;
+  ctx.shadowBlur=o.type==='concrete'?10:18;
+  ctx.shadowColor=o.type==='sonic'?'#35dfff':o.type==='smoke'?'#ff5b35':'#ff9c35';
+  ctx.drawImage(img,...source,o.x-pad,o.y-pad,o.w+pad*2,o.h+pad*2);
+  if(o.type==='sonic'&&o.activated){
+    const age=Math.max(0,performance.now()-o.pulseStart),pulse=(age%420)/420;
+    ctx.globalAlpha=.9;
+    ctx.strokeStyle='#48eaff';ctx.lineWidth=5;ctx.shadowBlur=20;ctx.shadowColor='#33dfff';
+    for(let i=0;i<3;i++){
+      const p=(pulse+i/3)%1;
+      ctx.globalAlpha=.85*(1-p)+.12;
+      ctx.beginPath();ctx.ellipse(o.x+o.w/2,ground-32,38+p*58,25+p*48,0,Math.PI,Math.PI*2);ctx.stroke();
+    }
+  }
+  ctx.restore();
+};
+
+const themedCollision=window.collision;
+window.collision=function(o){
+  const hit=themedCollision(o);
+  if(o.type==='flashbang'){
+    if(!o.activated&&o.x-player.x<265&&o.x-player.x>20){
+      o.activated=true;beep(880,.1,'square');
+      if(!player.duck)flashUntil=performance.now()+1000;
+    }
+    return false;
+  }
+  if(o.type==='sonic'){
+    // The trap always emits before the runner reaches it, even during a jump.
+    if(!o.activated&&o.x-player.x<255&&o.x-player.x>15){o.activated=true;o.pulseStart=performance.now();beep(245,.12,'square')}
+    if(o.activated){
+      const px=player.x+24,pw=80;
+      const py=player.duck?ground-55:player.y+18,ph=player.duck?51:player.jumping?78:102;
+      const fx=o.x-32,fy=ground-92,fw=o.w+64,fh=92;
+      if(px<fx+fw&&px+pw>fx&&py<fy+fh&&py+ph>fy)return true;
+    }
+    return hit;
+  }
+  const nearSmoke=o.type==='smoke'&&!o.triggered&&
+    o.x-player.x<165&&o.x+o.w-player.x>-35;
+  if(nearSmoke){
+    if(!o.triggered){
+      o.triggered=true;smokeUntil=performance.now()+1000;smokeSeed=Math.random()*1000;smokeAnchor=o;
+      beep(150,.16,'sawtooth');
+      for(let i=0;i<22;i++)particles.push({x:o.x+o.w/2,y:o.y+8,vx:(Math.random()-.5)*5,vy:-1-Math.random()*4,life:35,c:'#b9bbc2'});
+    }
+    return false;
+  }
+  if(o.type==='smoke')return false;
+  return hit;
+};
+
+const themedPlayerRenderer=window.drawPlayer;
+window.drawPlayer=function(t){
+  themedPlayerRenderer(t);
+  if(t<smokeUntil&&smokeAnchor){
+    const remain=Math.min(1,(smokeUntil-t)/180),fadeIn=Math.min(1,(1000-(smokeUntil-t))/120),alpha=Math.min(remain,fadeIn);
+    ctx.save();const cloudX=smokeAnchor.x+smokeAnchor.w/2,cloudY=ground-135;
+    ctx.globalAlpha=alpha;ctx.fillStyle='#41444b';ctx.beginPath();ctx.ellipse(cloudX,cloudY,310,235,0,0,Math.PI*2);ctx.fill();
+    for(let i=0;i<32;i++){const angle=i*2.399+smokeSeed,drift=Math.sin(t*.0018+i)*18,x=cloudX+Math.cos(angle)*(155+i%4*30)+drift,y=cloudY+Math.sin(angle)*(105+i%3*27)-Math.sin(t*.001+i)*14,r=82+(i%5)*17;ctx.fillStyle=i%3===0?'#585b63':i%3===1?'#383b42':'#494c54';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+    ctx.globalAlpha=.88*alpha;ctx.fillStyle='#d9dbe0';ctx.font='700 12px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('SMOKE',cloudX,cloudY-8);ctx.restore();
+  }
+  if(t<flashUntil){
+    const left=flashUntil-t,alpha=Math.min(.96,Math.min((1000-left)/70,left/150));
+    ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle='#f7fbff';ctx.fillRect(0,0,W,H);ctx.globalAlpha=.9*alpha;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(W*.5,H*.45,Math.max(W,H)*.38,0,Math.PI*2);ctx.fill();ctx.restore();
+  }
+};
+</script>
+<script>
+document.title='JWKS RUN';
+document.querySelector('.logo').innerHTML='JWKS <b>RUN</b>';
+document.querySelector('#title').innerHTML='JWKS <em>RUN</em>';
 </script></body></html>
