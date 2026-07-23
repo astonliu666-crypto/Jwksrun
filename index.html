@@ -82,11 +82,12 @@ window.spawnObstacle=function(){
   themedSpawnObstacle();
   for(let i=before;i<obstacles.length;i++){
     const o=obstacles[i];
+    if(o.type==='drone'){o.y=ground-125;o.w=82;o.h=36;continue}
     const wasGround=['barrier','spike','orb','wall'].includes(o.type);
     // Normalize the total air/ground mix to roughly 50/50 from the start.
     const airBoost=score<180?.50:score<500?.17:.25;
     if(wasGround&&Math.random()<airBoost){
-      if(Math.random()<.52){o.type='drone';o.w=70;o.h=34;o.y=ground-150}
+      if(Math.random()<.52){o.type='drone';o.w=82;o.h=36;o.y=ground-125}
       else{o.type='flashbang';o.w=52;o.h=52;o.y=ground-106;o.activated=false}
       continue;
     }
